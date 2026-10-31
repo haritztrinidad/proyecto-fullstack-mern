@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acceso - Sistema</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2 id="formTitle">Iniciar Sesión</h2>
+        <form id="authForm">
+            <input type="email" id="email" placeholder="Correo electrónico" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit" id="submitBtn">Ingresar</button>
+        </form>
+        <p id="toggleText" style="text-align: center; margin-top: 15px; font-size: 14px; cursor: pointer; color: #007bff;">
+            ¿No tienes cuenta? Regístrate aquí
+        </p>
+        <p id="mensaje"></p>
+    </div>
+    <script>
+        let isLogin = true;
+        const toggleText = document.getElementById('toggleText');
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const authForm = document.getElementById('authForm');
+
+        toggleText.addEventListener('click', () => {
+            isLogin = !isLogin;
+            formTitle.innerText = isLogin ? 'Iniciar Sesión' : 'Registro';
+            submitBtn.innerText = isLogin ? 'Ingresar' : 'Registrarse';
+            toggleText.innerText = isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión';
+            document.getElementById('mensaje').innerText = '';
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+
+            try {
+                const res = await fetch('http://localhost:5000' + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (isLogin) {
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        window.location.href = 'index.html';
+                    } else {
+                        document.getElementById('mensaje').style.color = 'red';
+                        document.getElementById('mensaje').innerText = data.error || 'Error al iniciar sesión';
+                    }
+                } else {
+                    if (res.status === 201) {
+                        document.getElementById('mensaje').style.color = 'green';
+                        document.getElementById('mensaje').innerText = '¡Registrado con éxito! Ahora inicia sesión.';
+                        isLogin = true;
+                        formTitle.innerText = 'Iniciar Sesión';
+                        submitBtn.innerText = 'Ingresar';
+                        toggleText.innerText = '¿No tienes cuenta? Regístrate aquí';
+                    } else {
+                        document.getElementById('mensaje').style.color = 'red';
+                        document.getElementById('mensaje').innerText = data.error || 'Error al registrarse';
+                    }
+                }
+            } catch (err) {
+                document.getElementById('mensaje').style.color = 'red';
+                document.getElementById('mensaje').innerText = 'Error de conexión con el servidor';
+            }
+        });
+    </script>
+</body>
+</html>

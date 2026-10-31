@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Principal - CRUD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container" style="width: 500px;">
+        <h2>Panel Principal</h2>
+        <p>¡Has iniciado sesión correctamente!</p>
+        
+        <div style="margin: 20px 0;">
+            <h3>Gestión de Elementos</h3>
+            <form id="itemForm" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="itemName" placeholder="Nuevo elemento..." required style="margin: 0;">
+                <button type="submit" style="width: auto; padding: 10px 15px;">Agregar</button>
+            </form>
+            <ul id="itemList" style="list-style: none; padding: 0; text-align: left;"></ul>
+        </div>
+
+        <button id="logoutBtn" style="background-color: #dc3545;">Cerrar Sesión</button>
+    </div>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
+
+        async function cargarItems() {
+            try {
+                const res = await fetch('http://localhost:5000/api/items', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) return;
+                const items = await res.json();
+                const itemList = document.getElementById('itemList');
+                itemList.innerHTML = '';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 8px 10px; margin-bottom: 5px; border-radius: 4px; border: 1px solid #ddd;';
+                    li.innerHTML = `<span>${item.name}</span> <button onclick="eliminarItem('${item._id}')" style="background-color: #dc3545; border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto;">Eliminar</button>`;
+                    itemList.appendChild(li);
+                });
+            } catch (err) {
+                console.error('Error al cargar elementos', err);
+            }
+        }
+
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('itemName').value;
+            try {
+                const res = await fetch('http://localhost:5000/api/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    document.getElementById('itemName').value = '';
+                    cargarItems();
+                }
+            } catch (err) {
+                console.error('Error al crear elemento', err);
+            }
+        });
+
+        async function eliminarItem(id) {
+            try {
+                const res = await fetch('http://localhost:5000/api/items/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    cargarItems();
+                }
+            } catch (err) {
+                console.error('Error al eliminar elemento', err);
+            }
+        }
+
+        cargarItems();
+    </script>
+</body>
+</html>
